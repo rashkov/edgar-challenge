@@ -1,7 +1,7 @@
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.io._
-
+import Edgar.getClass
 import scala.io.Source
 
 case class Session(ip: String,
@@ -10,6 +10,7 @@ case class Session(ip: String,
                    num_requests: Int,
                    sort_order: Int)
 
+println(getClass.getResource("/inactivity_period.txt"))
 def parse_date(date_str: String): Date = {
   val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
   formatter.parse(date_str, new java.text.ParsePosition(0))
