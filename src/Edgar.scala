@@ -2,8 +2,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.io._
 
-import Edgar.getClass
-
 import scala.io.{BufferedSource, Source}
 
 case class Session(ip: String,
@@ -64,28 +62,47 @@ object Edgar extends App {
     Source.fromInputStream(getClass.getResourceAsStream("/log.csv"))
   }
 
-  var ongoing_sessions = Map[String, Session]()
-  for ((line, i) <- log_file_handler.getLines.zipWithIndex) if (i > 0) {
+  def parse_line(line: String): (String, Long) = {
     val elements = line.split(",")
     val ip = elements(0)
     val date = elements(1)
     val time = elements(2)
     val date_str = s"${date} ${time}"
     val current_line_epoch_time: Long = parse_date(date_str).getTime
+    (ip, current_line_epoch_time)
+  }
 
-    // Add the new line to our data-set
+  def updated_ongoing_sessions(ongoing_sessions: Map[String, Session],
+                               ip: String,
+                               current_line_epoch_time: Long,
+                               line_id: Int): Map[String, Session] = {
     if (ongoing_sessions contains ip) {
       val session = ongoing_sessions(ip)
       val new_session = session.copy(
         num_requests = session.num_requests + 1,
         last_req = current_line_epoch_time
       )
-      ongoing_sessions = ongoing_sessions.updated(ip, new_session)
+      ongoing_sessions.updated(ip, new_session)
     } else {
       val session =
-        Session(ip, current_line_epoch_time, current_line_epoch_time, 1, i)
-      ongoing_sessions = ongoing_sessions.updated(ip, session)
+        Session(
+          ip,
+          current_line_epoch_time,
+          current_line_epoch_time,
+          1,
+          line_id
+        )
+      ongoing_sessions.updated(ip, session)
     }
+  }
+
+  var ongoing_sessions = Map[String, Session]()
+  for ((line, i) <- log_file_handler.getLines.zipWithIndex) if (i > 0) {
+    val (ip, current_line_epoch_time) = parse_line(line)
+
+    // Add the new line to our data-set
+    ongoing_sessions =
+      updated_ongoing_sessions(ongoing_sessions, ip, current_line_epoch_time, i)
 
     // Process completed sessions and update ongoing sessions
     val completed_sessions = get_completed_sessions(
